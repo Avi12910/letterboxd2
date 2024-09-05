@@ -1,77 +1,58 @@
 import time
+from collections import defaultdict
 
 from bs4 import BeautifulSoup
 from flask import Flask
 from flask_cors import CORS, cross_origin
 import requests
-import psycopg2
+from sys import getsizeof
 
-from config import load_config
 
-ratings = {'': 'n/a',
-           '½': 0.5,
-           '★': 1,
-           '★½': 1.5,
-           '★★': 2,
-           '★★½': 2.5,
-           '★★★': 3,
-           '★★★½': 3.5,
-           '★★★★': 4,
-           '★★★★½': 4.5,
-           '★★★★★': 5}
+from connect import exec_insert, exec_select, insert_film_basic
 
 app = Flask(__name__)
 CORS(app)
-
-
-def insert_actor(actor_name):
-    sql = """INSERT INTO dbo.tbl_actors(actor_name)
-             VALUES(%s) RETURNING \"actor_ID\";"""
-
-    actor_id = None
-    config = load_config()
-
-    try:
-        with  psycopg2.connect(**config) as conn:
-            with  conn.cursor() as cur:
-                # execute the INSERT statement
-                cur.execute(sql, (actor_name,))
-
-                # get the generated id back
-                rows = cur.fetchone()
-                if rows:
-                    actor_id = rows[0]
-
-                # commit the changes to the database
-                conn.commit()
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        return actor_id
-
-
-def get_rating(stars):
-    if stars is None:
-        return 'n/a'
-    else:
-        return ratings[stars.strip()]
-
 
 def get_user_profile(username):
     response = requests.get('https://letterboxd.com/' + username)
     return response.text
 
+def get_film_info(links):
 
-def get_film_info(link):
-    film_info = {}
+    film_info = exec_select('dbo.tbl_films','*', 'link',links)
 
-    # film_info['genres'] = get_film_genres(link)
+    all_films = {}
+    for x in film_info:
+        all_films[x[0]] = list(x[1::])
 
-    return film_info
+    film_ids = list(all_films.keys())
+    print(film_ids)
 
+    all_themes = get_themes(film_ids)
+    for x in collapse_data(all_themes):
+        all_films[x[0]].append(x[1])
+
+    all_genres = get_genres(film_ids)
+    for x in collapse_data(all_genres):
+        all_films[x[0]].append(x[1])
+
+    all_cast = get_cast(film_ids)
+    for x in collapse_data((all_cast)):
+        all_films[x[0]].append(x[1])
+
+    # film_info['production'] = get_production(film_ids)
+
+    return all_films
+
+def collapse_data(data):
+    collapsed_data = defaultdict(list)
+    for key, value in data:
+        collapsed_data[key].append(value)
+    result = [(key, value) for key, value in collapsed_data.items()]
+    return result
 
 def insert_film(link):
-    film = get_film_basic(link)
+    film = scrape_film_basic(link)
 
     film_id = insert_film_basic([film['link'],film['name'],film['release_year'],film['avg_rating'],film['num_ratings'],film['num_fans'],film['length'],film['language']])
 
@@ -80,135 +61,48 @@ def insert_film(link):
     insert_themes(film_id, film['themes'])
     insert_production(film_id, film['production'])
 
+    return film
 
-def insert_film_basic(film):
-    sql = """INSERT INTO dbo.tbl_films(link,name,release_year,avg_rating,num_ratings,num_fans,length,language) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id"""
+def get_cast(film_ids):
+    return exec_select('dbo.tbl_actorsinfilms',['film_id', 'actor_name'], 'film_id',film_ids)
 
-    film_id = None
+def get_themes(film_ids):
+    return exec_select('dbo.tbl_themesinfilms',['film_id', 'theme'], 'film_id',film_ids)
 
-    config = load_config()
-    try:
-        with  psycopg2.connect(**config) as conn:
-            with  conn.cursor() as cur:
-                cur.execute(sql, film)
+def get_genres(film_ids):
+    return exec_select('dbo.tbl_genresinfilms',['film_id', 'genre'], 'film_id',film_ids)
 
-                # get the generated id back
-                rows = cur.fetchone()
-                if rows:
-                    film_id = rows[0]
-
-                conn.commit()
-
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        return film_id
-
-def get_cast(film_id):
-    sql = """SELECT * FROM dbo.tbl_actorsinfilms WHERE film_id = %s"""
-    return exec_select(sql, film_id)
-
-def get_themes(film_id):
-    sql = """SELECT * FROM dbo.tbl_themesinfilms WHERE film_id = %s"""
-    return exec_select(sql, film_id)
-
-def get_genres(film_id):
-    sql = """SELECT * FROM dbo.tbl_genresinfilms WHERE film_id = %s"""
-    return exec_select(sql, film_id)
-
-def get_production(film_id):
-    sql = """SELECT * FROM dbo.tbl_productioninfilms WHERE film_id = %s"""
-    return exec_select(sql, film_id)
+def get_production(film_ids):
+    return exec_select('dbo.tbl_productioninfilms',['film_id', 'production_name', 'production_type'], 'film_id',film_ids)
 
 def insert_cast(film_id, cast):
     if cast:
         values = [(film_id, x) for x in cast]
-        sql = """INSERT INTO dbo.tbl_actorsinfilms(film_id, actor_name)
-                     VALUES """
-
-        exec_insert(sql, values)
+        exec_insert('dbo.tbl_actorsinfilms', ('film_id', 'actor_name'), values)
 
 def insert_genres(film_id, genres):
     values = [(film_id, x) for x in genres]
-    sql = """INSERT INTO dbo.tbl_genresinfilms(film_id, genre)
-                     VALUES """
-
-    exec_insert(sql, values)
+    exec_insert('dbo.tbl_genresinfilms',('film_id','genre'), values)
 
 def insert_themes(film_id, themes):
     if themes:
         values = [(film_id, x) for x in themes]
-        sql = """INSERT INTO dbo.tbl_themesinfilms(film_id, theme)
-                         VALUES """
-
-        exec_insert(sql, values)
+        exec_insert('dbo.tbl_themesinfilms', ('film_id', 'theme'), values)
 
 def insert_production(film_id, production):
     values = [(film_id, x, y) for x, y in production]
-    sql = """INSERT INTO dbo.tbl_productioninfilms(film_id, production_type, production_name)
-                         VALUES """
+    exec_insert('dbo.tbl_productioninfilms',('film_id','production_type','production_name'), values)
 
-    exec_insert(sql, values)
-
-def generate_args_string(values):
-    args_str = ",".join("(%s)" % ", ".join("%s" for _ in range(len(t))) for t in values)
-    return args_str
-
-
-def exec_insert(sql, values):
-    config = load_config()
-    args_str = generate_args_string(values)
-    sql = sql + args_str
-    flattened_values = [item for sublist in values for item in sublist]
-    try:
-        with  psycopg2.connect(**config) as conn:
-            with  conn.cursor() as cur:
-                cur.execute(sql, flattened_values)
-                conn.commit()
-
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-
-def exec_select(sql, key):
-    config = load_config()
-    result = None
-    try:
-        with  psycopg2.connect(**config) as conn:
-            with  conn.cursor() as cur:
-                cur.execute(sql, (key,))
-                result = cur.fetchall()
-                conn.commit()
-
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-    finally:
-        return result
-
-def get_film(name):
-    sql = """SELECT * FROM dbo.tbl_films WHERE name = %s"""
-
-    config = load_config()
-
-    try:
-        with  psycopg2.connect(**config) as conn:
-            with  conn.cursor() as cur:
-                cur.execute(sql, (name, ))
-
-                film_info = cur.fetch()
-
-                conn.commit()
-
-    except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
-
+def get_film(link):
+    film_info = exec_select('dbo.tbl_films','*', 'link',link)
     if film_info is None:
-        return insert_film(name)
+        return insert_film(link)
 
     else:
         return film_info
 
 # Gets name, release date, cast, length, avg_rating, num_ratings
-def get_film_basic(link):
+def scrape_film_basic(link):
     basic_info = {'link': link}
 
     film_basic = requests.get('https://letterboxd.com/film/' + link)
@@ -236,9 +130,9 @@ def get_film_basic(link):
         basic_info['cast'] = []
 
     film_production = []
-    film_production.extend(get_film_production(soup, 'Director'))
-    film_production.extend(get_film_production(soup, 'Writer'))
-    film_production.extend(get_film_production(soup, 'Composer'))
+    film_production.extend(scrape_film_production(soup, 'Director'))
+    film_production.extend(scrape_film_production(soup, 'Writer'))
+    film_production.extend(scrape_film_production(soup, 'Composer'))
 
     basic_info['production'] = film_production
 
@@ -276,7 +170,7 @@ def get_film_basic(link):
 
     return basic_info
 
-def get_film_production(soup, role):
+def scrape_film_production(soup, role):
     value = []
 
     soup2 = soup.find(string=[role, role + 's'])
@@ -289,33 +183,40 @@ def get_film_production(soup, role):
     return value
 
 def film_in_db(link):
-    sql = """SELECT * FROM dbo.tbl_films WHERE link = %s"""
-    return exec_select(sql, link) != []
-
-
+    return exec_select('dbo.tbl_films',['id'],'link',[link])
 
 # @app.route('/allfilms/<username>')
 # @cross_origin()
 def get_all_watched_movies(username):
-    films = requests.get('https://letterboxd.com/imthelizardking/list/all-the-movies-10k-views-4/by/popular/')
+    films = requests.get('https://letterboxd.com/' + username + '/films')
     soup = BeautifulSoup(films.text, 'html.parser')
     num_pages = int(soup.find_all(class_='paginate-page')[-1].get_text())
     print(num_pages)
-    film_names = []
+    all_films = []
 
-    for i in range(95, num_pages + 1):
-        films = requests.get('https://letterboxd.com/imthelizardking/list/all-the-movies-10k-views-4/by/popular/page/' + str(i))
+    for i in range(num_pages + 1):
+        films = requests.get('https://letterboxd.com/' + username + '/films/page/' + str(i))
         soup = BeautifulSoup(films.text, 'html.parser')
 
         for poster in soup.find_all(class_='poster-container'):
             attr = poster.contents[1]
-            film = {'name': attr.attrs['data-film-slug']}
-            print(film['name'], i)
-            if not film_in_db(film['name']):
-                insert_film(film['name'])
+            film = {'link': attr.attrs['data-film-slug']}
+            print(film['link'])
+            film_id = film_in_db(film['link'])['id']
+            film_info = None
+            if not film_id:
+                film_info = insert_film(film['link'])
                 time.sleep(0.5)
+            else:
+                film_info = get_film_info(film_id)
+            all_films.append(film_info)
 
+    return all_films
 
 
 if __name__ == '__main__':
-    get_all_watched_movies('punq')
+    # li = exec_select('dbo.tbl_films','*', 'id',[18,19])
+
+    print(get_film_info(['longlegs','barbie']))
+    # print(get_all_watched_movies('Avi1291'))
+
