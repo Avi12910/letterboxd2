@@ -66,8 +66,6 @@ def exec_select(table, columns, key, values):
             values=sql.SQL(', ').join(sql.Placeholder() for _ in values)
         )
 
-    print(select_query)
-
     result = None
 
     try:
