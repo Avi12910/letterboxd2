@@ -1,10 +1,9 @@
 import html
 
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS, cross_origin
 from flask_caching import Cache
 
-from movieinserts import insert_film
 from movielist import MovieList
 
 app = Flask(__name__)
@@ -29,7 +28,5 @@ def get_all_movies(username):
 
 
 if __name__ == '__main__':
-    # app.run(debug=True)
-    insert_film("the-deliverance-2024")
-
+    app.run(debug=True)
 

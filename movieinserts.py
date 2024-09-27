@@ -1,6 +1,5 @@
-from multiprocessing.managers import Value
-
 import requests
+import re
 from bs4 import BeautifulSoup
 
 from connect import insert_film_basic, exec_insert
@@ -25,19 +24,23 @@ def scrape_film_basic(link):
     film_basic = requests.get('https://letterboxd.com/film/' + link)
     soup = BeautifulSoup(film_basic.text, 'html.parser')
 
+    name = soup.find(class_='name js-widont prettify').get_text()
 
-    avg_rating = soup.find('meta', content='Average rating').find_next()['content']
-    avg_rating = avg_rating.split(' ')[0]
-    basic_info['avg_rating'] = avg_rating
+    # Need to deal with this eventually. Sometimes links change, seems very infrequent (annoying)
+    if re.sub(r'[^\w\s]', '', name.lower()) not in link.replace('-',' ').lower():
+        raise ValueError(f"Broken Link: {name} + {link}")
+
+    if soup.find('meta', content='Average rating') is not None:
+        avg_rating = soup.find('meta', content='Average rating').find_next()['content']
+        avg_rating = avg_rating.split(' ')[0]
+        basic_info['avg_rating'] = avg_rating
+    else:
+        # Have to do negative 1 because of how I set up the DB. Not a big fan, may fix
+        basic_info['avg_rating'] = '-1'
 
     release_year = soup.find(class_='releaseyear').get_text()
     basic_info['release_year'] = release_year
 
-    name = soup.find(class_='name js-widont prettify').get_text()
-
-    # Need to deal with this eventually. Sometimes links change, seems very infrequent (annoying)
-    if name != link.replace('-',' '):
-        raise ValueError(f"Broken Link: {name} + {link}")
 
     film_name = name + ' (' + release_year + ')'
     basic_info['name'] = film_name
@@ -73,7 +76,7 @@ def scrape_film_basic(link):
     else:
         basic_info['themes'] = []
 
-    ratings_hist = requests.get('https://letterboxd.com/csi/film/' + link + '/rating-histogram/')
+    ratings_hist = requests.get(f'https://letterboxd.com/csi/film/{link}/rating-histogram/')
     ratings_soup = BeautifulSoup(ratings_hist.text, 'html.parser')
 
     ratings_nums = [x.get_text().split(' ') for x in ratings_soup.find('ul').children if x != ' ']

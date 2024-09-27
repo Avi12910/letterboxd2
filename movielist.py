@@ -22,18 +22,27 @@ class MovieList:
         if letterboxd.status_code == 404:
             abort(404, description="Username not found on Letterboxd")
 
-        soup = BeautifulSoup(letterboxd.text, 'html.parser')
-        num_pages = int(soup.find_all(class_='paginate-page')[-1].get_text())
         film_ratings = {}
 
-        # Get user info for each film on each page
-        for i in range(0, num_pages + 1):
-            letterboxd = requests.get('https://letterboxd.com/' + self.user  + '/films/page/' + str(i))
-            soup = BeautifulSoup(letterboxd.text, 'html.parser')
+        soup = BeautifulSoup(letterboxd.text, 'html.parser')
 
+        if not soup.find_all(class_='paginate-page'):
+            soup = BeautifulSoup(letterboxd.text, 'html.parser')
             for poster in soup.find_all(class_='poster-container'):
                 attr = poster.contents[1]
                 film_ratings[attr.attrs['data-film-slug']] = get_rating(poster.get_text())
+
+        else:
+            num_pages = int(soup.find_all(class_='paginate-page')[-1].get_text())
+
+            # Get user info for each film on each page
+            for i in range(0, num_pages + 1):
+                letterboxd = requests.get('https://letterboxd.com/' + self.user  + '/films/page/' + str(i))
+                soup = BeautifulSoup(letterboxd.text, 'html.parser')
+
+                for poster in soup.find_all(class_='poster-container'):
+                    attr = poster.contents[1]
+                    film_ratings[attr.attrs['data-film-slug']] = get_rating(poster.get_text())
 
         # Get all IDs from the database
 
