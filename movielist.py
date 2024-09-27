@@ -1,6 +1,10 @@
+import html
 import time
 import requests
 from bs4 import BeautifulSoup
+from flask import abort
+import logging
+
 
 from connect import exec_select, exec_insert
 from movieinserts import insert_film
@@ -14,6 +18,10 @@ class MovieList:
 
         # Access the users letterboxd all films page
         letterboxd = requests.get('https://letterboxd.com/' + self.user + '/films')
+
+        if letterboxd.status_code == 404:
+            abort(404, description="Username not found on Letterboxd")
+
         soup = BeautifulSoup(letterboxd.text, 'html.parser')
         num_pages = int(soup.find_all(class_='paginate-page')[-1].get_text())
         film_ratings = {}
@@ -36,9 +44,13 @@ class MovieList:
 
         # If an ID is missing - add it to the database
         for link in unmatched_links:
-            print('we got em chief ' + link)
-            link_to_id[link] = insert_film(link)
-            time.sleep(0.5)
+            try:
+                print('we got em chief ' + link)
+                link_to_id[link] = insert_film(link)
+            except ValueError as e:
+                logging.error(f"Error occurred in nested function: {e}")
+            finally:
+                time.sleep(0.5)
 
         link_to_id = {name: ID for name, ID in film_ids}
         films = {link_to_id[name]: {'name': name, 'rating': rating} for name, rating in film_ratings.items() if
@@ -75,7 +87,7 @@ def get_film_info(ids):
         all_films[x[0]]['num_ratings'] = x[1][0][3]
         all_films[x[0]]['num_fans'] = x[1][0][4]
         all_films[x[0]]['length'] = x[1][0][5]
-        all_films[x[0]]['genre'] = x[1][0][6]
+        all_films[x[0]]['language'] = x[1][0][6]
 
     all_themes = get_themes(ids)
     for x in collapse_data(all_themes):

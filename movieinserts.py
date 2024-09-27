@@ -1,3 +1,5 @@
+from multiprocessing.managers import Value
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -23,6 +25,7 @@ def scrape_film_basic(link):
     film_basic = requests.get('https://letterboxd.com/film/' + link)
     soup = BeautifulSoup(film_basic.text, 'html.parser')
 
+
     avg_rating = soup.find('meta', content='Average rating').find_next()['content']
     avg_rating = avg_rating.split(' ')[0]
     basic_info['avg_rating'] = avg_rating
@@ -30,7 +33,13 @@ def scrape_film_basic(link):
     release_year = soup.find(class_='releaseyear').get_text()
     basic_info['release_year'] = release_year
 
-    film_name = soup.find(class_='name js-widont prettify').get_text() + ' (' + release_year + ')'
+    name = soup.find(class_='name js-widont prettify').get_text()
+
+    # Need to deal with this eventually. Sometimes links change, seems very infrequent (annoying)
+    if name != link.replace('-',' '):
+        raise ValueError(f"Broken Link: {name} + {link}")
+
+    film_name = name + ' (' + release_year + ')'
     basic_info['name'] = film_name
 
     film_length = soup.find(class_='text-link text-footer').get_text(strip=True).replace('\xa0',' ').split(' ')[0]
@@ -101,17 +110,17 @@ def scrape_film_production(soup, role):
 def insert_cast(film_id, cast):
     if cast:
         values = [(film_id, x) for x in cast]
-        exec_insert('dbo.tbl_actorsinfilms', ('film_id', 'actor_name'), values)
+        exec_insert('tbl_actorsinfilms', ('film_id', 'actor_name'), values)
 
 def insert_genres(film_id, genres):
     values = [(film_id, x) for x in genres]
-    exec_insert('dbo.tbl_genresinfilms',('film_id','genre'), values)
+    exec_insert('tbl_genresinfilms',('film_id','genre'), values)
 
 def insert_themes(film_id, themes):
     if themes:
         values = [(film_id, x) for x in themes]
-        exec_insert('dbo.tbl_themesinfilms', ('film_id', 'theme'), values)
+        exec_insert('tbl_themesinfilms', ('film_id', 'theme'), values)
 
 def insert_production(film_id, production):
     values = [(film_id, x, y) for x, y in production]
-    exec_insert('dbo.tbl_productioninfilms',('film_id','production_type','production_name'), values)
+    exec_insert('tbl_productioninfilms',('film_id','production_type','production_name'), values)

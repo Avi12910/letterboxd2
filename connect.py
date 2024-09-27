@@ -24,6 +24,7 @@ def insert_film_basic(film):
                 if rows:
                     film_id = rows[0]
 
+                print(cur.query)
                 conn.commit()
 
     except (Exception, psycopg2.DatabaseError) as error:
@@ -33,17 +34,17 @@ def insert_film_basic(film):
 
 
 def exec_insert(table, columns, values):
-    breakpoint()
     insert_query = sql.SQL("INSERT INTO {table} ({columns}) VALUES ({placeholders})").format(
-        table=sql.Identifier(table),
+        table=sql.Identifier('dbo',table),
         columns=sql.SQL(', ').join(map(sql.Identifier, columns)),
-        placeholders=sql.SQL(', ').join(sql.Placeholder() * len(columns))
+        placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in columns)
     )
 
     try:
         with  psycopg2.connect(**env) as conn:
             with  conn.cursor() as cur:
-                cur.execute(insert_query, values)
+                print(insert_query.as_string(conn))
+                cur.executemany(insert_query, values)
                 conn.commit()
 
     except (Exception, psycopg2.DatabaseError) as error:
@@ -73,18 +74,7 @@ def exec_select(table, columns, key, values):
             with  conn.cursor() as cur:
                 cur.execute(select_query, values)
                 rows = cur.fetchall()
-                # col_names = [desc[0] for desc in cur.description]
-                # if len(rows) == 1:
-                #     # If only one row, return a dict with single values
-                #     result = {col_names[i]: rows[0][i] for i in range(len(col_names))}
-                # else:
-                #     # If multiple rows, return a dict with lists of values
-                #     result = {col_name: [] for col_name in col_names}
-                #     for row in rows:
-                #         for i, col_name in enumerate(col_names):
-                #             result[col_name].append(row[i])
                 result = rows
-                # result = [dict(zip(col_names, row)) for row in rows]
                 conn.commit()
 
     except (Exception, psycopg2.DatabaseError) as error:
