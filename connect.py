@@ -1,14 +1,26 @@
+from urllib.parse import urlparse
+
 import psycopg2
 import os
 
 from psycopg2 import sql
 
-env = {
-    'host': os.environ['DB_HOST'],
-    'database': os.environ['DB_NAME'],
-    'user': os.environ['DB_USERNAME'],
-    'password': os.environ['DB_PASSWORD']
-}
+if 'DATABASE_URL' in os.environ:
+    result = urlparse(os.environ['DATABASE_URL'])
+    env = {
+        'host': result.hostname,
+        'database': result.path[1:],
+        'user': result.username,
+        'password': result.password,
+        'port': result.port
+    }
+else:
+    env = {
+        'host': os.environ['DB_HOST'],
+        'database': os.environ['DB_NAME'],
+        'user': os.environ['DB_USERNAME'],
+        'password': os.environ['DB_PASSWORD']
+    }
 
 def insert_film_basic(film):
     sql = """INSERT INTO dbo.tbl_films(link,name,release_year,avg_rating,num_ratings,num_fans,length,language) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id"""
