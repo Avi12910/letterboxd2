@@ -27,6 +27,11 @@ def get_all_movies(username):
     movies = MovieList(username)
     return movies.films
 
+@cross_origin()
+@app.route('/')
+def home():
+    return 'Hello'
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
