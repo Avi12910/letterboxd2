@@ -11,7 +11,7 @@ const getItemsCountAndRating = (data , item, minimum) => {
 
     const ratings = dataArray.reduce((acc, movie) => {
         for (const i in movie['film_info'][item]) {
-            if (movie['rating'] != 'n/a') {
+            if (movie['rating'] !== 'n/a') {
                 const j = movie['film_info'][item][i]
 
                 acc[j] = (acc[j] || { sum: 0, count: 0})
@@ -32,11 +32,5 @@ const getItemsCountAndRating = (data , item, minimum) => {
 
     return [count, ratings];
 }
-
-// const objectSort = (data, limit, order) => {
-//     return Object.entries(actorCount)
-//         .sort(([, countA], [, countB]) => countB - countA)
-//         .slice(0,5);
-// }
 
 export default getItemsCountAndRating;

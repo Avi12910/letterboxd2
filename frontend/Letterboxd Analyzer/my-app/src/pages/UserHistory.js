@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react';
-// import { fetchUserData } from '../utils/api';
+import React, { useState } from 'react';
 import GenreAnalysis from '../components/GenreAnalysis';
 import CastAnalysis from '../components/CastAnalysis';
 import UserSearch from '../components/UserSearch';

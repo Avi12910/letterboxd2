@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Heading } from '@chakra-ui/react';
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer } from '@chakra-ui/react';
 
 const DirectorAnalysis = ({ data }) => {
     const dataCopy = JSON.parse(JSON.stringify(data));
@@ -7,7 +7,7 @@ const DirectorAnalysis = ({ data }) => {
 
     const count = dataArray.reduce((acc, movie) => {
         for (const i in movie['film_info']['production']) {
-            if (movie['film_info']['production'][i][1] == 'Director') {
+            if (movie['film_info']['production'][i][1] === 'Director') {
                 const j = movie['film_info']['production'][i][0]
                 acc[j] = (acc[j] || 0) + 1;
             }
@@ -17,8 +17,8 @@ const DirectorAnalysis = ({ data }) => {
 
     const ratings = dataArray.reduce((acc, movie) => {
         for (const i in movie['film_info']['production']) {
-            if (movie['rating'] != 'n/a') {
-                if (movie['film_info']['production'][i][1] == 'Director') {
+            if (movie['rating'] !== 'n/a') {
+                if (movie['film_info']['production'][i][1] === 'Director') {
                     const j = movie['film_info']['production'][i][0]
 
                     acc[j] = (acc[j] || { sum: 0, count: 0})

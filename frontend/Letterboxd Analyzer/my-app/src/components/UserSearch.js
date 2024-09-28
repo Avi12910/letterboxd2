@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, Button, Input, FormControl, FormLabel, Heading } from '@chakra-ui/react';
+import { Box, Button, FormControl, FormLabel } from '@chakra-ui/react';
 
 
 const UserSearch = ({ fetchUserData }) => {

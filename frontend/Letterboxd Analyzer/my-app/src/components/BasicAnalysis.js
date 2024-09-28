@@ -1,4 +1,4 @@
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const RatingsByYear = ({ data }) => {
     const dataArray = Object.values(data)
@@ -26,7 +26,7 @@ const RatingsByYear = ({ data }) => {
     dataArray.forEach(movie => {
         const i = movie['film_info']['year']
         yearArray[i][0] += 1
-        if (movie['rating'] != 'n/a') {
+        if (movie['rating'] !== 'n/a') {
             yearArray[i][1] += movie['rating']
             yearArray[i][2] += 1
 
@@ -37,7 +37,7 @@ const RatingsByYear = ({ data }) => {
     const transformedData = Object.keys(yearArray).map(date => ({
         year: date,
         count: yearArray[date][0],
-        avg: yearArray[date][2] != 0 ? (yearArray[date][1] / yearArray[date][2]).toFixed(2) : 0
+        avg: yearArray[date][2] !== 0 ? (yearArray[date][1] / yearArray[date][2]).toFixed(2) : 0
     }))
 
     console.log(transformedData)

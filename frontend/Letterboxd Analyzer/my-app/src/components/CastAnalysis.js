@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, Heading, HStack, TableCaption } from '@chakra-ui/react';
+import { Table, Thead, Tbody, Tr, Th, Td, TableContainer, HStack, TableCaption } from '@chakra-ui/react';
 import getItemsCountAndRating from '../common/utils';
 
 const CastAnalysis = ({ data }) => {
