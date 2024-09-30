@@ -19,7 +19,7 @@ const UserHistory = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`http://localhost:5000/allfilms/${username}`);
+      const response = await fetch(`https://letterboxdscrape-a8e5d12dd546.herokuapp.com/allfilms/${username}`);
 
       if (response.status === 404) {
         setError('Username not found')
@@ -38,7 +38,11 @@ const UserHistory = () => {
     return (
     <Container>
         <Heading as="h1">Search User Movie Data</Heading>
-        <Box>
+        <Box display={"flex"}
+          flexDirection="column" // This ensures the components are stacked vertically
+          alignItems="center" // Align the children horizontally to the center
+          justifyContent="center" // Align the children vertically to the center
+          >
           <UserSearch fetchUserData={fetchUserData} />
           {loading && <Spinner size="xl" />}
           {error && <Text color="red">{error}</Text>}
