@@ -5,12 +5,14 @@ import UserSearch from '../components/UserSearch';
 import RatingsByYear from '../components/BasicAnalysis';
 import { Box, Heading, Text, Container } from '@chakra-ui/react';
 import DirectorAnalysis from '../components/DirectorAnalysis';
+import Recommender from '../components/Recommender';
 import { Tabs, TabList, TabPanels, Tab, TabPanel, Spinner } from '@chakra-ui/react'
 
 
 
 const UserHistory = () => {
   const [data, setData] = useState(null);
+  const [username, setUsername] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +30,7 @@ const UserHistory = () => {
       const data = await response.json();
       setData(data); 
       setError(null);
+      setUsername(username)
 
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -61,12 +64,14 @@ const UserHistory = () => {
           <Tab>Genres</Tab>
           <Tab>Cast</Tab>
           <Tab>Director</Tab>
+          <Tab>Recommendations</Tab>
         </TabList>
         <TabPanels>
           <TabPanel><RatingsByYear data={data} /></TabPanel>
           <TabPanel><GenreAnalysis data={data} /></TabPanel>
           <TabPanel><CastAnalysis data={data} /></TabPanel>
           <TabPanel><DirectorAnalysis data={data} /></TabPanel>
+          <TabPanel><Recommender username={username} /></TabPanel>
         </TabPanels>
       </Tabs>
     </Container>

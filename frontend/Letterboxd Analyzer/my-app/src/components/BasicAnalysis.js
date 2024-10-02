@@ -71,7 +71,22 @@ const RatingsByYear = ({ data }) => {
     const handleChartClick = (e) => {
         if (e && e.activePayload) {
             const year = e.activePayload[0].payload.year
-            const movies = dataArray.filter((movie) => {
+
+            let movies = []
+
+            if (smoothOne) {
+                movies = dataArray.filter((movie) => {
+                    return parseInt(year) === parseInt(movie['film_info']['year'])
+                })
+            }
+            else {
+                movies = dataArray.filter((movie) => {
+                    return parseInt(movie['film_info']['year']) >= parseInt(year) &&
+                        parseInt(movie['film_info']['year']) < parseInt(year) + 10
+                })
+            }
+
+                movies = dataArray.filter((movie) => {
                 return parseInt(year) === parseInt(movie['film_info']['year'])
             })
 
@@ -100,7 +115,7 @@ const RatingsByYear = ({ data }) => {
             <Modal isOpen={isOpen} onClose={onClose}>
                 <ModalContent>
                     <ModalBody whiteSpace='pre-line'>
-                        {/* {selected.join('\n')} */}
+                        {selected.join('\n')}
                     </ModalBody>
                 </ModalContent>
             </Modal>
