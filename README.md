@@ -23,3 +23,6 @@ Right now I'm using a content based filtering algorithm on genres and themes. It
 - Compare with your friends, similar to how spotify does it.
 - Movie posters and actor pictures. Could use the TMDB API or scrape from letterboxd as well.
 - Better recommendations, maybe using SVD.
+
+## What I've learned so far:
+- Use an ORM. Just because you're a SQL expert, doesn't mean it wouldn't be much easier to automate away DB connections. I am not doing anything nearly fancy enough to justify a need for handwritten SQL queries, which I'm essentially automating out anyways using psycopg2 SQL library.
