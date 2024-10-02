@@ -16,6 +16,7 @@ Right now I'm using a content based filtering algorithm on genres and themes. It
 - Spice up recommendations, even if the content based filtering isn't perfect it can provide the user more information to get the user to investigate the recommended movie further for potential watchability.
 - Clean up repo, I'm still working through some roughness of using git on a personal machine
 - Visuals, visuals, visuals
+- Documentation, obviously
 
 ## Longer term features:
 - Watchlist integration. Have to add more scraping but process should be similar to scraping user profiles.
