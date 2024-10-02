@@ -22,6 +22,7 @@ else:
         'password': os.environ['DB_PASSWORD']
     }
 
+
 def insert_film_basic(film):
     sql = """INSERT INTO dbo.tbl_films(link,name,release_year,avg_rating,num_ratings,num_fans,length,language) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id"""
     film_id = None
@@ -47,7 +48,7 @@ def insert_film_basic(film):
 
 def exec_insert(table, columns, values):
     insert_query = sql.SQL("INSERT INTO {table} ({columns}) VALUES ({placeholders})").format(
-        table=sql.Identifier('dbo',table),
+        table=sql.Identifier('dbo', table),
         columns=sql.SQL(', ').join(map(sql.Identifier, columns)),
         placeholders=sql.SQL(', ').join(sql.Placeholder() for _ in columns)
     )
@@ -62,8 +63,8 @@ def exec_insert(table, columns, values):
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
 
-def exec_select(table, columns, key, values):
 
+def exec_select(table, columns, key, values):
     if len(values) <= 1:
         select_query = sql.SQL("SELECT {columns} FROM {table} WHERE {key} = {values}").format(
             table=sql.SQL(table),
@@ -93,3 +94,54 @@ def exec_select(table, columns, key, values):
         print(error)
     finally:
         return result
+
+
+def get_all_unseen(user_movies):
+    ids = user_movies.films.keys()
+    id_sql = '(' + ','.join(str(id) for id in ids) + ')'
+
+    sql_films = f'SELECT * FROM dbo.tbl_films WHERE id NOT IN {id_sql}'
+    sql_genres = f'SELECT * FROM dbo.tbl_genresinfilms WHERE film_id NOT IN {id_sql}'
+    sql_themes = f'SELECT * FROM dbo.tbl_themesinfilms WHERE film_id NOT IN {id_sql}'
+
+    films = None
+    genres = None
+    themes = None
+
+    try:
+        with  psycopg2.connect(**env) as conn:
+            with  conn.cursor() as cur:
+                cur.execute(sql_films)
+                rows = cur.fetchall()
+                films = rows
+
+                cur.execute(sql_genres)
+                rows = cur.fetchall()
+                genres = rows
+
+                cur.execute(sql_themes)
+                rows = cur.fetchall()
+                themes = rows
+
+                conn.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+    all_films = {}
+    for film in films:
+        all_films[film[0]] = {
+            'movie_id': film[0],
+            'title': film[1],
+            'genres': [],
+            'themes': [],
+            'length': film[6],
+            'release_year': film[2]
+        }
+
+    for genre in genres:
+        all_films[genre[1]]['genres'].append(genre[2])
+
+    for theme in themes:
+        all_films[theme[1]]['themes'].append(theme[2])
+
+    return all_films
